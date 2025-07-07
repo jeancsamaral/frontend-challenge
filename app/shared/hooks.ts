@@ -57,12 +57,21 @@ export function useSocket(): UseSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Initialize socket connection
+    // Initialize socket connection with Vercel-optimized settings
+    const isProduction = process.env.NODE_ENV === 'production';
+    
     const socket = io({
       path: '/api/socket',
       autoConnect: false,
-      transports: ['polling', 'websocket'],
-      upgrade: true,
+      // Use only polling in production (Vercel), both in development
+      transports: isProduction ? ['polling'] : ['polling', 'websocket'],
+      upgrade: !isProduction, // Only upgrade to websocket in development
+      timeout: 60000,
+      forceNew: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
     });
 
     socket.on('connect', () => {
@@ -84,12 +93,30 @@ export function useSocket(): UseSocketReturn {
       console.error('Socket error:', error);
     });
 
+    // Listen for connection confirmation from server
+    socket.on('connection-confirmed', (data) => {
+      console.log('Connection confirmed by server:', data);
+      setIsConnected(true);
+    });
+
+    // Heartbeat for serverless environments
+    const heartbeat = setInterval(() => {
+      if (socket.connected) {
+        socket.emit('ping');
+      }
+    }, 30000); // Ping every 30 seconds
+
+    socket.on('pong', () => {
+      console.log('Heartbeat response received');
+    });
+
     socketRef.current = socket;
 
     // Connect the socket
     socket.connect();
 
     return () => {
+      clearInterval(heartbeat);
       socket.disconnect();
     };
   }, []);

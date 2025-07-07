@@ -2,10 +2,26 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  // CORS headers for all requests
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers específicos para Vercel
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://frontend-challenge-tau-woad.vercel.app',
+    'https://frontend-challenge-tau-woad.vercel.app/',
+    'https://frontend-challenge-*.vercel.app'
+  ];
+  
+  const origin = req.headers.origin;
+  const isAllowedOrigin = origin && allowedOrigins.some(allowed => 
+    allowed === origin || (allowed.includes('*') && origin.includes('vercel.app'))
+  );
+
+  if (isAllowedOrigin && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -17,20 +33,27 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     const httpServer = (res as any).socket.server;
     
     if (!httpServer.io) {
-      console.log('⚡ Initializing Socket.IO server...');
+      console.log('⚡ Initializing Socket.IO server for Vercel...');
       
       const io = new SocketIOServer(httpServer, {
         path: '/api/socket',
         addTrailingSlash: false,
         cors: {
-          origin: "*",
+          origin: allowedOrigins.concat(['http://localhost:3000']),
           methods: ["GET", "POST"],
-          credentials: false,
+          credentials: true,
         },
         allowEIO3: true,
-        transports: ['polling', 'websocket'],
-        pingTimeout: 60000,
+        // Configuração específica para Vercel
+        transports: ['polling'], // Usar apenas polling no Vercel
+        pingTimeout: 120000, // Aumentar timeout para conexões serverless
         pingInterval: 25000,
+        upgradeTimeout: 30000,
+        maxHttpBufferSize: 1e8,
+        connectTimeout: 60000,
+        // Configurações específicas para ambiente serverless
+        serveClient: false,
+        cookie: false,
       });
 
       // Simple in-memory storage
@@ -59,7 +82,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
               rooms.set(roomId, {
                 id: roomId,
                 teacherId: '',
-                students: new Map(), // 🎯 CORREÇÃO: Usar Map para melhores dados dos estudantes
+                students: new Map(),
                 currentSlide: 0,
                 currentSlideId: null,
                 currentSlideData: null,
@@ -67,7 +90,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
                 presentationTitle: '',
                 totalSlides: 0,
                 isActive: false,
-                responses: new Map() // 🎯 NOVA: Armazenar respostas por slide
+                responses: new Map(),
+                createdAt: new Date()
               });
             }
 
@@ -77,14 +101,23 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
               room.teacherId = userId;
               console.log(`👨‍🏫 Teacher ${userName} joined room ${roomId}`);
               
-              // 🎯 CORREÇÃO: Notificar professor sobre estudantes atuais
+              // Confirmar conexão para o professor
+              socket.emit('connection-confirmed', {
+                roomId,
+                role,
+                userId,
+                userName,
+                totalStudents: room.students.size
+              });
+              
+              // Notificar professor sobre estudantes atuais
               socket.emit('students-update', {
                 totalStudents: room.students.size,
                 students: Array.from(room.students.values())
               });
               
             } else {
-              // 🎯 CORREÇÃO: Armazenar dados completos do estudante
+              // Armazenar dados completos do estudante
               room.students.set(userId, {
                 id: userId,
                 name: userName,
@@ -92,7 +125,16 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
                 lastActivity: new Date()
               });
               
-              // 🎯 CORREÇÃO: Notificar professor sobre novo estudante com contagem correta
+              // Confirmar conexão para o estudante
+              socket.emit('connection-confirmed', {
+                roomId,
+                role,
+                userId,
+                userName,
+                totalStudents: room.students.size
+              });
+              
+              // Notificar professor sobre novo estudante
               socket.to(roomId).emit('student-joined', {
                 userId,
                 userName,
@@ -138,7 +180,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
           }
         });
 
-        // 🎯 NOVA FUNCIONALIDADE: Teacher current slide update (quando professor navega no editor)
+        // Teacher current slide update
         socket.on('teacher-current-slide', (data) => {
           console.log('📍 Teacher current slide update:', data);
           
@@ -156,17 +198,17 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
               // Atualizar dados da sala
               room.currentSlide = slideIndex;
               room.currentSlideId = slideId;
-              room.currentSlideData = slideData; // 🎯 NOVA: Armazenar dados completos do slide
+              room.currentSlideData = slideData;
               room.presentationId = presentationId;
               room.presentationTitle = presentationTitle;
               room.totalSlides = totalSlides;
-              room.isActive = true; // Considerar que a apresentação está ativa quando professor navega
+              room.isActive = true;
               
-              // 🎯 NOVA: Enviar dados completos do slide para todos os estudantes na sala
+              // Enviar dados completos do slide para todos os estudantes na sala
               socket.to(roomId).emit('slide-change', { 
                 slideIndex, 
                 slideId,
-                slideData // 🎯 NOVA: Incluir dados completos do slide
+                slideData
               });
               
               // Se é a primeira vez que define uma apresentação, enviar dados da apresentação
@@ -205,7 +247,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
               return;
             }
 
-            // 🎯 NOVA FUNCIONALIDADE: Armazenar resposta com dados completos
+            // Armazenar resposta com dados completos
             const answerData = {
               slideId,
               elementId,
@@ -215,7 +257,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
               userName: roomData.userName,
             };
 
-            // Criar chave única para a resposta (userId + slideId + elementId)
+            // Criar chave única para a resposta
             const responseKey = `${roomData.userId}-${slideId}-${elementId}`;
             
             // Armazenar resposta no Map de respostas da sala
@@ -230,10 +272,10 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
               student.lastActivity = new Date();
             }
 
-            // 🎯 NOVA: Enviar estatísticas atualizadas para o professor
+            // Enviar estatísticas atualizadas
             const slideResponses = Array.from(room.responses.get(slideId)?.values() || []);
             
-            // Broadcast resposta individual e estatísticas
+            // Broadcast resposta individual
             io.to(roomId).emit('answer-update', answerData);
             
             // Enviar estatísticas apenas para o professor
@@ -357,6 +399,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
             socket.to(roomId).emit('interactive-element-removed', { slideId });
           } catch (error) {
+            console.error('❌ Error removing interactive element:', error);
           }
         });
 
@@ -369,7 +412,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
             if (roomData && roomId) {
               const room = rooms.get(roomId);
               if (room && roomData.role === 'student') {
-                // 🎯 CORREÇÃO: Usar Map ao invés de Set
                 room.students.delete(roomData.userId);
                 socket.to(roomId).emit('student-left', {
                   userId: roomData.userId,
@@ -394,7 +436,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
             if (roomData) {
               const room = rooms.get(roomData.roomId);
               if (room && roomData.role === 'student') {
-                // 🎯 CORREÇÃO: Usar Map ao invés de Set
                 room.students.delete(roomData.userId);
                 socket.to(roomData.roomId).emit('student-left', {
                   userId: roomData.userId,
@@ -409,6 +450,11 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
           }
         });
 
+        // Heartbeat/keepalive para conexões serverless
+        socket.on('ping', () => {
+          socket.emit('pong');
+        });
+
         // Error handler
         socket.on('error', (error) => {
           console.error('🚨 Socket error:', error);
@@ -416,16 +462,24 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       });
 
       httpServer.io = io;
-      console.log('✅ Socket.IO server ready!');
+      console.log('✅ Socket.IO server ready for Vercel!');
+    } else {
+      console.log('🔄 Socket.IO server already initialized');
     }
     
-    res.status(200).json({ status: 'ok', transport: 'socket.io' });
+    res.status(200).json({ 
+      status: 'ok', 
+      transport: 'socket.io',
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
     
   } catch (error) {
     console.error('💥 Fatal Socket.IO error:', error);
     res.status(500).json({ 
       error: 'Socket.IO initialization failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      environment: process.env.NODE_ENV
     });
   }
 } 
