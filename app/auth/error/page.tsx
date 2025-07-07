@@ -3,8 +3,9 @@
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { MdError } from 'react-icons/md';
+import { Suspense } from 'react';
 
-export default function AuthError() {
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams?.get('error') || null;
 
@@ -71,5 +72,17 @@ export default function AuthError() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthError() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      </div>
+    }>
+      <AuthErrorContent />
+    </Suspense>
   );
 } 

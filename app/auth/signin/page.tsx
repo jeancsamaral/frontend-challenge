@@ -1,13 +1,13 @@
 'use client';
 
 import { signIn, getProviders } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FcGoogle } from 'react-icons/fc';
 import { BsGithub } from 'react-icons/bs';
 import { MdEmail, MdLock } from 'react-icons/md';
 
-export default function SignIn() {
+function SignInContent() {
   const [providers, setProviders] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -184,5 +184,17 @@ export default function SignIn() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 } 
