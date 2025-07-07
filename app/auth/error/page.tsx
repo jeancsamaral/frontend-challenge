@@ -6,7 +6,7 @@ import { MdError } from 'react-icons/md';
 
 export default function AuthError() {
   const searchParams = useSearchParams();
-  const error = searchParams.get('error');
+  const error = searchParams?.get('error') || null;
 
   const getErrorMessage = (error: string | null) => {
     switch (error) {
