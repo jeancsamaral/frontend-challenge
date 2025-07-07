@@ -15,22 +15,17 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ slide, onUpdateSlide,
   const [activeTab, setActiveTab] = useState<'slide' | 'element'>('slide');
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
-  
-  // Move useRef to top level to comply with Rules of Hooks
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   
-  // Find selected element from slide elements or check for interactive slide
   const selectedElement = slide.elements.find(el => el.id === selectedElementId) || null;
   const isInteractiveSlideSelected = selectedElementId === 'interactive-slide' && slide.isInteractive;
 
-  // Auto-switch to Element tab when an element is selected
   React.useEffect(() => {
     if (selectedElement || isInteractiveSlideSelected) {
       setActiveTab('element');
     }
   }, [selectedElement, isInteractiveSlideSelected]);
 
-  // Auto-focus on text content when text element is selected
   React.useEffect(() => {
     if (selectedElement && selectedElement.type === 'text' && textareaRef.current) {
       textareaRef.current.focus();
@@ -38,7 +33,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ slide, onUpdateSlide,
     }
   }, [selectedElement]);
 
-  // Listen for element selection from canvas
   React.useEffect(() => {
     const handleElementSelection = (event: CustomEvent) => {
       setSelectedElementId(event.detail.elementId);
@@ -47,6 +41,11 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ slide, onUpdateSlide,
     window.addEventListener('elementSelected', handleElementSelection as EventListener);
     return () => window.removeEventListener('elementSelected', handleElementSelection as EventListener);
   }, []);
+
+  const closePanelOnMobile = () => {
+    // Dispatch evento para fechar o panel no mobile
+    window.dispatchEvent(new CustomEvent('closePropertiesPanel'));
+  };
 
   const handleSlideBackgroundChange = (color: string) => {
     const updatedSlide = { ...slide, backgroundColor: color };
@@ -645,12 +644,24 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ slide, onUpdateSlide,
 
   return (
     <div className="h-full flex flex-col" data-properties-panel>
-      
-      <div className="p-4 border-b border-gray-200">
+      {/* Header with mobile close button */}
+      <div className="p-3 lg:p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-3 lg:mb-0">
+          <h3 className="text-lg font-medium text-gray-900 lg:hidden">Properties</h3>
+          <button
+            onClick={closePanelOnMobile}
+            className="lg:hidden p-1 text-gray-400 hover:text-gray-600 rounded-md"
+            title="Fechar painel"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
         <div className="flex space-x-1">
           <button
             onClick={() => setActiveTab('slide')}
-            className={`px-3 py-1 rounded-md text-sm font-medium ${
+            className={`flex-1 lg:flex-initial px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'slide'
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:text-gray-900'
@@ -660,7 +671,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ slide, onUpdateSlide,
           </button>
           <button
             onClick={() => setActiveTab('element')}
-            className={`px-3 py-1 rounded-md text-sm font-medium ${
+            className={`flex-1 lg:flex-initial px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'element'
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:text-gray-900'
@@ -668,11 +679,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ slide, onUpdateSlide,
           >
             Element
           </button>
-
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-3 lg:p-4">
         {activeTab === 'slide' && renderSlideProperties()}
         {activeTab === 'element' && renderElementProperties()}
       </div>

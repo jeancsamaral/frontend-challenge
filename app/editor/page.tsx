@@ -155,10 +155,10 @@ export default function EditorPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900">
                 Minhas Apresentações
               </h1>
               <p className="text-sm text-gray-600 mt-1">
@@ -167,7 +167,7 @@ export default function EditorPage() {
             </div>
             <button
               onClick={createNewPresentation}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -182,18 +182,18 @@ export default function EditorPage() {
       {error && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-red-800">{error}</p>
+              <p className="text-red-800 text-sm">{error}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {presentations.length === 0 ? (
           // Empty state
           <div className="text-center py-12">
@@ -205,7 +205,7 @@ export default function EditorPage() {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Nenhuma apresentação criada
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
               Comece criando sua primeira apresentação interativa
             </p>
             <button
@@ -217,14 +217,14 @@ export default function EditorPage() {
           </div>
         ) : (
           // Presentations grid
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
             {presentations.map((presentation) => (
               <div
                 key={presentation.id}
                 className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
               >
                 {/* Thumbnail */}
-                <div className="h-40 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-t-lg flex items-center justify-center">
+                <div className="h-32 sm:h-40 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-t-lg flex items-center justify-center">
                   {presentation.thumbnail ? (
                     <img
                       src={presentation.thumbnail}
@@ -232,20 +232,20 @@ export default function EditorPage() {
                       className="w-full h-full object-cover rounded-t-lg"
                     />
                   ) : (
-                    <svg className="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-8 lg:w-12 h-8 lg:h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   )}
                 </div>
 
                 {/* Content */}
-                <div className="p-4">
+                <div className="p-3 lg:p-4">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">
+                    <h3 className="text-base lg:text-lg font-semibold text-gray-900 truncate flex-1 mr-2">
                       {presentation.title}
                     </h3>
                     {presentation.hasInteractiveElements && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
                         Interativo
                       </span>
                     )}
@@ -257,13 +257,13 @@ export default function EditorPage() {
                     </p>
                   )}
 
-                  <div className="flex items-center text-sm text-gray-500 mb-4">
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center text-xs lg:text-sm text-gray-500 mb-4">
+                    <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <span>{presentation.slidesCount} slides</span>
                     <span className="mx-2">•</span>
-                    <span>{new Date(presentation.updatedAt).toLocaleDateString('pt-BR')}</span>
+                    <span className="truncate">{new Date(presentation.updatedAt).toLocaleDateString('pt-BR')}</span>
                   </div>
 
                   {/* Actions */}

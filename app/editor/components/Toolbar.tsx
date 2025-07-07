@@ -63,20 +63,16 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
     setTool(toolId as any);
     
     if (toolId === 'text') {
-      // Add text element immediately and select it
       const textElement = createTextElement(100, 100);
       onAddElement?.(textElement);
-      // Note: The element will be selected automatically when added
     } else if (toolId === 'image') {
       setShowImageModal(true);
-      // Load gallery images when modal opens
       loadGalleryImages();
     } else if (toolId === 'interactive') {
       setShowInteractiveModal(true);
     }
   };
 
-  // Load images from localStorage for gallery
   const loadGalleryImages = () => {
     try {
       const images = imageStorage.getAllImages();
@@ -87,7 +83,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
     }
   };
 
-  // Save image using utility function
   const saveImageToStorage = async (file: File): Promise<string> => {
     try {
       setIsUploading(true);
@@ -103,13 +98,11 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         alert('Please select a valid image file.');
         return;
       }
       
-      // Validate file size (max 5MB for localStorage)
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
         alert('Image size must be less than 5MB.');
@@ -118,7 +111,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
       
       setSelectedFile(file);
       
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result;
@@ -128,7 +120,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
       };
       reader.readAsDataURL(file);
     } else {
-      // Reset if no file selected
       setSelectedFile(null);
       setPreviewUrl('');
     }
@@ -138,7 +129,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
     const imageElement = createImageElement(imageData.data, 100, 100);
     onAddElement?.(imageElement);
     
-    // Reset modal state
     setImageUrl('');
     setSelectedFile(null);
     setPreviewUrl('');
@@ -150,7 +140,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
   const handleDeleteGalleryImage = (fileName: string) => {
     if (confirm('Are you sure you want to delete this image?')) {
       imageStorage.deleteImage(fileName);
-      loadGalleryImages(); // Refresh gallery
+      loadGalleryImages(); 
     }
   };
 
@@ -170,7 +160,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
           return;
         }
         imageSrc = await saveImageToStorage(selectedFile);
-        // Refresh gallery after upload
         loadGalleryImages();
       }
       
@@ -201,15 +190,15 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
 
   return (
     <>
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
+      <div className="bg-white border-b border-gray-200 px-2 lg:px-4 py-2 lg:py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 lg:space-x-2 overflow-x-auto scrollbar-hide">
             {tools.map((tool) => (
               <button
                 key={tool.id}
                 onClick={() => handleToolClick(tool.id)}
                 className={`
-                  px-3 py-2 rounded-md text-sm font-medium transition-colors
+                  px-2 lg:px-3 py-1 lg:py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0
                   ${
                     editorState.tool === tool.id
                       ? 'bg-blue-100 text-blue-700 border border-blue-300'
@@ -219,37 +208,36 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onAddElement }) => {
                 title={tool.label}
               >
                 <span className="mr-1">{tool.icon}</span>
-                {tool.label}
+                <span className="hidden sm:inline">{tool.label}</span>
               </button>
             ))}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 lg:space-x-2 flex-shrink-0">
+            <div className="flex items-center space-x-1 border-r border-gray-300 pr-1 lg:pr-2">
               <button
                 onClick={() => {}}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+                className="p-1 lg:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
                 title="Undo"
               >
                 ↶
               </button>
               <button
                 onClick={() => {}}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+                className="p-1 lg:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
                 title="Redo"
               >
                 ↷
               </button>
             </div>
 
-            <div className="border-l border-gray-300 pl-2">
-              <button
-                onClick={onSave}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-              >
-                Save
-              </button>
-            </div>
+            <button
+              onClick={onSave}
+              className="bg-blue-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              <span className="hidden sm:inline">Save</span>
+              <span className="sm:hidden">💾</span>
+            </button>
           </div>
         </div>
       </div>

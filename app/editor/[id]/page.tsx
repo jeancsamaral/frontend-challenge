@@ -28,6 +28,11 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
   const [titleSaved, setTitleSaved] = useState(false);
   const [showLivePanel, setShowLivePanel] = useState(false);
   
+  // Estados de responsividade
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [propertiesPanelCollapsed, setPropertiesPanelCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  
   const [liveResponses, setLiveResponses] = useState<AnswerUpdateData[]>([]);
   const [totalStudentsOnline, setTotalStudentsOnline] = useState(0);
   const [showLiveStats, setShowLiveStats] = useState(false);
@@ -41,6 +46,42 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
   const [sessionError, setSessionError] = useState<string | null>(null);
   
   const { socket, isConnected, joinRoom, updateCurrentSlide } = useSocket();
+
+  // Detectar se é mobile/tablet
+  useEffect(() => {
+    const checkIsMobile = () => {
+      const mobile = window.innerWidth < 1024; // lg breakpoint
+      setIsMobile(mobile);
+      if (mobile) {
+        // Em mobile, colapsar painéis por padrão
+        setSidebarCollapsed(true);
+        setPropertiesPanelCollapsed(true);
+      }
+    };
+
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  // Listener para fechar properties panel do mobile
+  useEffect(() => {
+    const handleClosePropertiesPanel = () => {
+      setPropertiesPanelCollapsed(true);
+    };
+
+    const handleCloseSidebar = () => {
+      setSidebarCollapsed(true);
+    };
+
+    window.addEventListener('closePropertiesPanel', handleClosePropertiesPanel);
+    window.addEventListener('closeSidebar', handleCloseSidebar);
+    
+    return () => {
+      window.removeEventListener('closePropertiesPanel', handleClosePropertiesPanel);
+      window.removeEventListener('closeSidebar', handleCloseSidebar);
+    };
+  }, []);
 
   useEffect(() => {
     if (presentation && isConnected && !hasJoinedRoom && session?.user) {
@@ -579,9 +620,22 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 relative">
+      {/* Mobile Overlay */}
+      {isMobile && (!sidebarCollapsed || !propertiesPanelCollapsed) && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          onClick={() => {
+            setSidebarCollapsed(true);
+            setPropertiesPanelCollapsed(true);
+          }}
+        />
+      )}
+
       {/* Sidebar with slides */}
-      <div className="w-64 bg-white shadow-lg border-r border-gray-200">
+      <div className={`${
+        sidebarCollapsed ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'
+      } ${isMobile ? 'fixed z-40' : 'relative'} w-64 lg:w-64 bg-white shadow-lg border-r border-gray-200 transition-transform duration-300 ease-in-out h-full`}>
         <SlideList
           slides={presentation.slides}
           currentSlideIndex={currentSlideIndex}
@@ -592,7 +646,7 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* Main editor area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Save confirmation */}
         {showSaveConfirmation && (
           <div className="absolute top-20 left-6 bg-green-600 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50">
@@ -619,10 +673,23 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
 
         {/* Header with editable presentation title */}
         <div className="bg-white shadow-sm border-b border-gray-200">
-          <div className="px-6 py-4">
+          <div className="px-3 lg:px-6 py-4">
             <div className="flex justify-between items-center">
               {/* Left Section - Navigation & Title */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 lg:space-x-4 min-w-0 flex-1">
+                {/* Mobile menu buttons */}
+                {isMobile && (
+                  <button
+                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors lg:hidden"
+                    title="Toggle slides panel"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                )}
+                
                 <button
                   onClick={handleBack}
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -633,13 +700,13 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
                   </svg>
                 </button>
                 
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-2 lg:space-x-3 min-w-0">
+                  <div className="p-2 bg-gray-50 rounded-lg hidden sm:block">
                     <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <input
                       type="text"
                       value={isEditingTitle ? tempTitle : (presentation.title || '')}
@@ -655,7 +722,7 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
                           cancelTitleEditing();
                         }
                       }}
-                      className={`text-xl font-semibold text-gray-900 bg-transparent border-none outline-none px-2 py-1 transition-all ${
+                      className={`text-lg lg:text-xl font-semibold text-gray-900 bg-transparent border-none outline-none px-2 py-1 transition-all w-full ${
                         isEditingTitle 
                           ? 'bg-white border border-blue-300 rounded-md shadow-sm ring-2 ring-blue-100' 
                           : 'hover:bg-gray-50 rounded-md'
@@ -668,13 +735,26 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
               </div>
 
               {/* Right Section - Actions */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 lg:space-x-2 flex-shrink-0">
+                {/* Mobile properties panel toggle */}
+                {isMobile && (
+                  <button
+                    onClick={() => setPropertiesPanelCollapsed(!propertiesPanelCollapsed)}
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors lg:hidden"
+                    title="Toggle properties panel"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                    </svg>
+                  </button>
+                )}
+                
                 {/* Live Controls Group */}
                 {hasJoinedRoom && (
-                  <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
+                  <div className={`flex items-center space-x-1 lg:space-x-2 px-2 lg:px-3 py-2 bg-gray-50 rounded-lg ${isMobile ? 'hidden sm:flex' : ''}`}>
                     <button
                       onClick={toggleAutoSync}
-                      className={`p-2 rounded-md text-sm font-medium transition-colors ${
+                      className={`p-1 lg:p-2 rounded-md text-sm font-medium transition-colors ${
                         autoSyncEnabled
                           ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                           : 'bg-white text-gray-600 hover:bg-gray-100'
@@ -750,18 +830,18 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
                 {/* Primary Actions */}
                 <button
                   onClick={openLivePresentation}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  className="px-2 lg:px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center space-x-1 lg:space-x-2"
                   title="Painel de controle live"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
-                  <span>Live</span>
+                  <span className="hidden sm:inline">Live</span>
                 </button>
                 
                 <button
                   onClick={() => window.open(generateStudentUrl(), '_blank')}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                  className="px-2 lg:px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors hidden sm:block"
                 >
                   Visualizar
                 </button>
@@ -769,9 +849,10 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="px-4 py-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
+                  className="px-2 lg:px-4 py-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  {loading ? 'Salvando...' : 'Salvar'}
+                  <span className="hidden sm:inline">{loading ? 'Salvando...' : 'Salvar'}</span>
+                  <span className="sm:hidden">💾</span>
                 </button>
               </div>
             </div>
@@ -879,8 +960,8 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
         />
 
         {/* Canvas area */}
-        <div className="flex-1 flex">
-          <div className={`flex-1 p-4 ${showLiveStats ? 'pr-2' : ''}`}>
+        <div className="flex-1 flex relative">
+          <div className={`flex-1 p-2 lg:p-4 ${showLiveStats && !isMobile ? 'pr-2' : ''} min-w-0`}>
             <SlideCanvas
               slide={currentSlide}
               onUpdateSlide={(updatedSlide) => updateSlide(currentSlideIndex, updatedSlide)}
@@ -893,7 +974,11 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
 
           {/* Live Stats Panel */}
           {showLiveStats && currentSlide && (currentSlide as any).isInteractive && (
-            <div className="w-80 bg-white shadow-lg border-l border-gray-200 p-4 overflow-y-auto">
+            <div className={`${
+              isMobile 
+                ? 'fixed inset-x-0 bottom-0 top-20 z-50' 
+                : 'w-80'
+            } bg-white shadow-lg border-l border-gray-200 p-4 overflow-y-auto`}>
               <div className="mb-4 flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-800">Estatísticas em Tempo Real</h3>
                 <button
@@ -917,7 +1002,11 @@ export default function EditorIdPage({ params }: { params: Promise<{ id: string 
           )}
 
           {/* Properties panel */}
-          <div className={`${showLiveStats ? 'w-72' : 'w-80'} bg-white shadow-lg border-l border-gray-200`}>
+          <div className={`${
+            propertiesPanelCollapsed ? 'translate-x-full lg:translate-x-0' : 'translate-x-0'
+          } ${isMobile ? 'fixed right-0 top-0 bottom-0 z-40' : 'relative'} ${
+            showLiveStats && !isMobile ? 'w-72' : 'w-80'
+          } bg-white shadow-lg border-l border-gray-200 transition-transform duration-300 ease-in-out`}>
             <PropertiesPanel
               slide={currentSlide}
               onUpdateSlide={(updatedSlide) => updateSlide(currentSlideIndex, updatedSlide)}
