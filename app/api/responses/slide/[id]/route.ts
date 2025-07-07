@@ -5,9 +5,10 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const slideId = params.id;
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId'); // Filtro opcional por estudante
