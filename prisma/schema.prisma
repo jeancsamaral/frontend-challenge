@@ -1,0 +1,249 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication (teachers)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  password  String?  // Hashed password for credential authentication
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  presentations Presentation[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+// Student model for authentication (students)
+model Student {
+  id              String   @id @default(cuid())
+  registrationNumber String @unique  // Número de matrícula
+  name            String?
+  email           String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  responses       StudentResponse[]
+  sessionStudents SessionStudent[]
+
+  @@map("students")
+}
+
+// Presentation model (collection of slides) - Enhanced with interactive features
+model Presentation {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  thumbnail   String?
+  
+  // Interactive presentation settings
+  hasInteractiveElements Boolean @default(false)
+  allowAnonymousResponses Boolean @default(true)
+  requireStudentName Boolean @default(false)
+  maxResponsesPerStudent Int? @default(1)
+  
+  // Presentation display settings
+  theme Json? // Color scheme, fonts, etc.
+  settings Json? // General presentation settings
+  
+  // Presentation status
+  isPublished Boolean @default(false)
+  isTemplate Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slides Slide[]
+  sessions Session[]
+
+  @@map("presentations")
+}
+
+// Individual slide model
+model Slide {
+  id       String    @id @default(cuid())
+  title    String?
+  order    Int
+  type     SlideType @default(STANDARD)
+  
+  // Slide content and layout
+  background Json? // Background color, image, gradient
+  layout Json? // Layout configuration
+  animations Json? // Animation settings
+  
+  // Interactive slide settings (moved from separate model)
+  isInteractive Boolean @default(false)
+  question String?
+  interactiveType InteractiveType?
+  options Json? // For multiple choice, word cloud settings, etc.
+  interactiveSettings Json? // Display settings, limits, etc.
+  correctAnswers Json? // For quiz functionality
+  interactivePosition Json? // Position of interactive element {x, y}
+  interactiveSize Json? // Size of interactive element {width, height}
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  presentationId String
+  presentation   Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+  elements       SlideElement[]
+  responses      StudentResponse[]
+
+  @@map("slides")
+}
+
+// Elements within a slide (text, images, shapes, etc.)
+model SlideElement {
+  id       String      @id @default(cuid())
+  type     ElementType
+  content  String?     // Text content or image URL
+  position Json        // {x, y} coordinates
+  size     Json        // {width, height}
+  style    Json?       // Color, font, etc.
+  
+  // Element behavior
+  isLocked Boolean @default(false)
+  isVisible Boolean @default(true)
+  zIndex Int @default(0)
+  
+  // Animation and interaction
+  animations Json? // Element animations
+  interactions Json? // Click events, hover effects, etc.
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  slideId String
+  slide   Slide  @relation(fields: [slideId], references: [id], onDelete: Cascade)
+
+  @@map("slide_elements")
+}
+
+// Student responses to interactive slides
+model StudentResponse {
+  id          String   @id @default(cuid())
+  response    Json     // Response data (text, choice, etc.)
+  ipAddress   String?  // For basic identification
+  userAgent   String?  // Browser information
+  
+  // Response metadata
+  responseTime Int? // Time taken to respond (in seconds)
+  isCorrect Boolean? // For quiz questions
+  points Int? // Points earned
+  
+  createdAt DateTime @default(now())
+
+  // Relations
+  slideId   String
+  slide     Slide   @relation(fields: [slideId], references: [id], onDelete: Cascade)
+  sessionId String?
+  session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("student_responses")
+}
+
+// Student participation in sessions
+model SessionStudent {
+  id        String   @id @default(cuid())
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+  isActive  Boolean  @default(true)
+  
+  // Relations
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+  @@map("session_students")
+}
+
+// Live presentation sessions
+model Session {
+  id          String    @id @default(cuid())
+  code        String    @unique // Short code for students to join
+  title       String?   // Session name
+  
+  // Session state
+  isActive    Boolean   @default(true)
+  currentSlide Int?     // Current slide index
+  startedAt   DateTime?
+  endedAt     DateTime?
+  
+  // Session settings
+  allowLateJoin Boolean @default(true)
+  showResults Boolean @default(true)
+  collectEmails Boolean @default(false)
+  
+  // Session statistics
+  totalParticipants Int @default(0)
+  totalResponses Int @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  presentationId String
+  presentation   Presentation     @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+  responses      StudentResponse[]
+  sessionStudents SessionStudent[]
+
+  @@map("sessions")
+}
+
+// Enums
+enum SlideType {
+  STANDARD
+  INTERACTIVE
+  TITLE
+  SECTION
+  CONCLUSION
+}
+
+enum ElementType {
+  TEXT
+  IMAGE
+  SHAPE
+  BACKGROUND
+  VIDEO
+  AUDIO
+  EMBED
+}
+
+enum InteractiveType {
+  MULTIPLE_CHOICE
+  WORD_CLOUD
+  LIVE_POLL
+  OPEN_TEXT
+  RATING
+  RANKING
+  QUIZ
+}

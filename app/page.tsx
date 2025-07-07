@@ -1,103 +1,131 @@
-import Image from "next/image";
+'use client';
+
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { MdLock, MdPeople, MdSchool } from "react-icons/md";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { data: session, status } = useSession();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="max-w-4xl mx-auto text-center">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
+          <div className="mb-8">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
+              📊 Slide Editor
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-600 mb-2">
+              Apresentações Interativas
+            </p>
+            <p className="text-gray-500">
+              Crie apresentações envolventes com interação em tempo real dos estudantes
+            </p>
+          </div>
+
+          {/* Status de autenticação */}
+          {status === 'loading' ? (
+            <div className="mb-8 flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+          ) : session ? (
+            <div className="mb-8 p-4 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-green-800">
+                Bem-vindo, <strong>{session.user?.name || session.user?.email}</strong>! 
+                Você está autenticado e pode acessar todas as funcionalidades.
+              </p>
+            </div>
+          ) : (
+            <div className="mb-8 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="flex items-center justify-center mb-2">
+                <MdLock className="h-5 w-5 text-yellow-600 mr-2" />
+                <p className="text-yellow-800">
+                  Faça login para acessar o editor de slides
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-blue-50 rounded-lg p-6">
+              <div className="flex items-center justify-center mb-3">
+                <MdSchool className="h-8 w-8 text-blue-600 mr-2" />
+                <h3 className="text-lg font-semibold text-blue-900">
+                  Para Professores
+                </h3>
+              </div>
+              <p className="text-blue-700 mb-4">
+                Crie slides interativos com questões de múltipla escolha, nuvens de palavras e enquetes ao vivo
+              </p>
+              <Link
+                href="/editor"
+                className="inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                {!session && <MdLock className="h-4 w-4 mr-2" />}
+                Abrir Editor
+              </Link>
+              {!session && (
+                <p className="text-xs text-blue-600 mt-2">Requer login</p>
+              )}
+            </div>
+
+            <div className="bg-green-50 rounded-lg p-6">
+              <div className="flex items-center justify-center mb-3">
+                <MdPeople className="h-8 w-8 text-green-600 mr-2" />
+                <h3 className="text-lg font-semibold text-green-900">
+                  Para Estudantes
+                </h3>
+              </div>
+              <p className="text-green-700 mb-4">
+                Participe de sessões interativas e responda às questões em tempo real
+              </p>
+              <Link
+                href="/student/login"
+                className="inline-block bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
+              >
+                Entrar na Sessão
+              </Link>
+            </div>
+          </div>
+
+          {/* Informações de teste */}
+          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              Códigos de Demonstração
+            </h3>
+            <div className="flex flex-wrap justify-center gap-4 text-sm mb-4">
+              <span className="bg-white px-3 py-1 rounded-md font-mono">ABC123</span>
+              <span className="bg-white px-3 py-1 rounded-md font-mono">DEF456</span>
+              <span className="bg-white px-3 py-1 rounded-md font-mono">GHI789</span>
+            </div>
+            <p className="text-gray-600 text-sm">
+              Use estes códigos para testar a interface do estudante
+            </p>
+          </div>
+
+          {/* Informações de login */}
+          {!session && (
+            <div className="bg-indigo-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-indigo-900 mb-3">
+                Sistema de Login
+              </h3>
+              <p className="text-indigo-700 text-sm mb-4">
+                Para testar o sistema, você pode usar as seguintes credenciais:
+              </p>
+              <div className="bg-white rounded-md p-4 text-left max-w-md mx-auto">
+                <p className="text-sm text-gray-600">
+                  <strong>Admin:</strong><br />
+                  Email: admin@example.com<br />
+                  Senha: password
+                </p>
+                <p className="text-sm text-gray-600 mt-2">
+                  <strong>Ou:</strong> Qualquer email/senha válidos
+                </p>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
