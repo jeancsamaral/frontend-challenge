@@ -1,11 +1,24 @@
 'use client';
 
-import { signIn, getProviders } from 'next-auth/react';
+import { signIn, getProviders, useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FcGoogle } from 'react-icons/fc';
 import { BsGithub } from 'react-icons/bs';
 import { MdEmail, MdLock } from 'react-icons/md';
+
+// Extrair apenas o path da URL se for uma URL absoluta
+const getRedirectPath = (url: string) => {
+  try {
+    if (url.startsWith('http')) {
+      const urlObj = new URL(url);
+      return urlObj.pathname;
+    }
+    return url;
+  } catch {
+    return '/editor';
+  }
+};
 
 function SignInContent() {
   const [providers, setProviders] = useState<any>(null);
@@ -15,6 +28,7 @@ function SignInContent() {
   const [error, setError] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const callbackUrl = searchParams?.get('callbackUrl') || '/editor';
 
   useEffect(() => {
@@ -24,6 +38,14 @@ function SignInContent() {
     };
     getProvidersData();
   }, []);
+
+  // Redirecionamento automático se o usuário já estiver logado
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      const redirectPath = getRedirectPath(callbackUrl);
+      router.push(redirectPath);
+    }
+  }, [session, status, callbackUrl, router]);
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +63,9 @@ function SignInContent() {
       if (result?.error) {
         setError('Email ou senha inválidos');
       } else {
-        router.push(callbackUrl);
+        // Usar apenas o path relativo para o redirecionamento
+        const redirectPath = getRedirectPath(callbackUrl);
+        router.push(redirectPath);
       }
     } catch (error) {
       setError('Erro ao fazer login. Tente novamente.');
@@ -51,7 +75,8 @@ function SignInContent() {
   };
 
   const handleProviderSignIn = (providerId: string) => {
-    signIn(providerId, { callbackUrl });
+    const redirectPath = getRedirectPath(callbackUrl);
+    signIn(providerId, { callbackUrl: redirectPath });
   };
 
   return (
