@@ -25,6 +25,7 @@ function SignInContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,8 +43,20 @@ function SignInContent() {
   // Redirecionamento automático se o usuário já estiver logado
   useEffect(() => {
     if (status === 'authenticated' && session) {
+      setIsRedirecting(true);
       const redirectPath = getRedirectPath(callbackUrl);
-      router.push(redirectPath);
+      console.log('Usuário autenticado, redirecionando para:', redirectPath);
+      
+      // Usar replace para evitar volta para a página de login
+      router.replace(redirectPath);
+      
+      // Fallback adicional caso o router não funcione
+      const timeout = setTimeout(() => {
+        console.log('Fallback: usando window.location');
+        window.location.replace(redirectPath);
+      }, 1000);
+      
+      return () => clearTimeout(timeout);
     }
   }, [session, status, callbackUrl, router]);
 
@@ -65,7 +78,8 @@ function SignInContent() {
       } else {
         // Usar apenas o path relativo para o redirecionamento
         const redirectPath = getRedirectPath(callbackUrl);
-        router.push(redirectPath);
+        console.log('Login bem-sucedido, redirecionando para:', redirectPath);
+        router.replace(redirectPath);
       }
     } catch (error) {
       setError('Erro ao fazer login. Tente novamente.');
@@ -100,13 +114,26 @@ function SignInContent() {
         </div>
 
         <div className="bg-white py-8 px-4 shadow-xl rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-              {error}
+          {/* Mostrar redirecionamento se o usuário já estiver logado */}
+          {isRedirecting ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Redirecionando...
+              </h3>
+              <p className="text-sm text-gray-600">
+                Você já está logado. Aguarde um momento...
+              </p>
             </div>
-          )}
+          ) : (
+            <>
+              {error && (
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+                  {error}
+                </div>
+              )}
 
-          {/* Formulário de login com credenciais */}
+              {/* Formulário de login com credenciais */}
           <form className="space-y-6" onSubmit={handleCredentialsSignIn}>
             <div>
               <label htmlFor="email" className="sr-only">
@@ -206,6 +233,8 @@ function SignInContent() {
               Ou use qualquer email/senha válidos
             </p>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>
