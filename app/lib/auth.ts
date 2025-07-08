@@ -206,6 +206,19 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
+    async redirect({ url, baseUrl }) {
+      // Se é uma URL de callback, redirecionar para o editor (página inicial dos professores)
+      if (url.startsWith(baseUrl)) {
+        // Se já está tentando ir para uma página específica, manter essa página
+        if (url.includes('/editor') || url.includes('/student') || url.includes('/auth')) {
+          return url
+        }
+        // Caso contrário, redirecionar para o editor (dashboard dos professores)
+        return `${baseUrl}/editor`
+      }
+      // Para URLs externas, redirecionar para o editor
+      return `${baseUrl}/editor`
+    },
   },
   session: {
     strategy: 'jwt',

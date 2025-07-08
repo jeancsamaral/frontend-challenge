@@ -58,7 +58,7 @@ export default function Home() {
                 Crie slides interativos com questões de múltipla escolha, nuvens de palavras e enquetes ao vivo
               </p>
               <Link
-                href="/editor"
+                href={session ? "/editor" : "/auth/signin?callbackUrl=/editor"}
                 className="inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
                 {!session && <MdLock className="h-4 w-4 mr-2" />}
