@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ProtectedRoute from "../components/ProtectedRoute";
+import ProtectedRoute from "../wrappers/ProtectedRoute";
 
 export const metadata: Metadata = {
   title: "Slide Editor - Interactive Presentations",
